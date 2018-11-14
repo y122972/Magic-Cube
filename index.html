@@ -1,12 +1,158 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
+    <link rel="stylesheet" href="./main.css">
 </head>
+
 <body>
-    
+
+    <div class="main-wrapper">
+        <!-- <div class="a"></div> -->
+        <div class="main">
+        </div>
+    </div>
 </body>
+<script>
+    let v = 10 / 10 // 速度，数字越大速度越快
+    for (let i = 0; i < 27; i++) { // 27 块总共
+        let blockWrapper = document.createElement('div')
+        blockWrapper.className = 'block-wrapper'
+        let block = document.createElement('div')
+        block.className = 'block'
+        for (let j = 0; j < 6; j++) { // 每块有六个面
+            let face = document.createElement('div')
+            face.className = `face face${j + 1}`
+            block.appendChild(face)
+        }
+        // 0 3 6
+        // 1 4 7
+        // 2 5 8  块的排列顺序
+        block.floor = i % 3 // 给每一块标号
+        block.face = parseInt(i / 9)
+        block.line = parseInt(i / 3) % 3
+        switch (i % 3) {
+            case 0: {//1st floor
+                break;
+            }
+            case 1: {
+                blockWrapper.style = 'top: 100px'
+                break;
+            }
+            case 2: {
+                blockWrapper.style = 'top: 200px'
+                break;
+            }
+        }
+        switch (parseInt(i / 9)) {
+            case 0: {//1st face
+                break;
+            }
+            case 1: {
+                blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'transform: translateZ(-100px)'
+                break;
+            }
+            case 2: {
+                blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'transform: translateZ(-200px)'
+                break;
+            }
+        }
+        switch (parseInt(i / 3) % 3) {
+            case 0: {//1st line
+                break;
+            }
+            case 1: {
+
+                blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'left: 100px'
+                break;
+            }
+            case 2: {
+                blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'left: 200px'
+                break;
+            }
+        }
+        blockWrapper.appendChild(block)
+        document.querySelector('.main').appendChild(blockWrapper)
+    }
+
+    let blocks=document.querySelectorAll('.block')
+    
+    document.onmousedown = e => {
+        if(e.target.className===''){ // 点击的不是任何一块
+            let originX = e.screenX, originY = e.screenY
+            let block = document.querySelector('.main')
+            let style = block.getAttribute('style') + ''
+            let rx = parseFloat(style.split('(')[1]) || -30, ry = parseFloat(style.split('(')[2]) || -30 // 初始角度-30
+            document.onmousemove = e => {
+                let down = e.screenY - originY, right = e.screenX - originX
+                block.style = `transform: rotateX(${-down * v + rx}deg) rotateY(${(right * v + ry)}deg)`
+            }
+            document.onmouseup=()=>{
+                document.onmousemove=null
+            }
+        } else {
+            let block = e.target.parentNode
+            let originX = e.screenX, originY = e.screenY
+            let moveDirection = '' // 移动方向，上下左右，左右当前层转动，上下包括当层，和当前面
+            let originR=block.style.webkitTransform.replace(/[^0-9]/ig,"")-0
+            //block.style = block.getAttribute('style') + 'transform-origin: 150px 0 -100px;'
+            document.onmousemove = e => {
+                let moveX = e.screenX - originX, moveY = e.screenY - originY
+                if (moveDirection === '' && (Math.abs(moveX) > 10 || Math.abs(moveY) > 10)) {// 鼠标移动了十个像素才会判断移动的方向
+                    if (Math.abs(moveX) > Math.abs(moveY)) { // 左右方向移动 
+                        if (moveX > 0) {
+                            moveDirection = 'left'
+                        } else {
+                            moveDirection = 'right'
+                        }
+                        if(moveDirection!=''){ // 有可能出现相等情况，所以moveDirection可能还是空
+                            for(let i=0;i<27;i++){
+                                if(blocks[i].floor===block.floor){
+                                    blocks[i].setAttribute('style',(blocks[i].getAttribute('style')||'') + `transform-origin: ${100-blocks[i].line*100+50}px 0 ${blocks[i].face*100-100}px; transition: 0s;`)
+                                }
+                            }
+                        }
+                    } else { // 上下方向移动
+                        if (moveY > 0) {
+                            moveDirection = 'down'
+                        } else {
+                            moveDirection = 'up'
+                        }
+                    }
+                }
+                if (moveDirection === 'left'||moveDirection === 'right') {
+                    for(let i=0;i<27;i++){
+                        if(blocks[i].floor===block.floor){
+                            blocks[i].style = blocks[i].getAttribute('style') + `transform: rotateY(${moveX+originR}deg);`
+                        }
+
+                    }
+                    
+                }
+                document.onmouseup = () => {
+                    document.onmousemove = null
+                    let mx=moveX+originR
+                    if (moveDirection === 'left'||moveDirection === 'right') {
+                        if(mx>0) {
+                            mx+=45
+                        } else {
+                            mx-=45
+                        }
+                        mx=parseInt( mx/90)*90
+                        for(let i=0;i<27;i++){
+                            if(blocks[i].floor===block.floor){
+                                blocks[i].setAttribute('style',blocks[i].getAttribute('style') + `transform: rotateY(${mx}deg); transition: .5s;`)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+</script>
+
 </html>
