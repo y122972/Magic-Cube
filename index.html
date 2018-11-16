@@ -29,7 +29,6 @@
             face.className = `face face${j + 1}`
             block.appendChild(face)
         }
-        // 111111112
         // 0 3 6
         // 1 4 7
         // 2 5 8  块的排列顺序
@@ -38,52 +37,84 @@
         block.line = parseInt(i / 3) % 3
         switch (i % 3) {
             case 0: {//1st floor
+                block.transformOriginY = 100
                 break;
             }
             case 1: {
                 blockWrapper.style = 'top: 100px'
+                block.transformOriginY = 0
                 break;
             }
             case 2: {
                 blockWrapper.style = 'top: 200px'
+                block.transformOriginY = -100
                 break;
             }
         }
         switch (parseInt(i / 9)) {
             case 0: {//1st face
+                block.transformOriginZ = -100
                 break;
             }
             case 1: {
                 blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'transform: translateZ(-100px)'
+                block.transformOriginZ = 0
                 break;
             }
             case 2: {
                 blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'transform: translateZ(-200px)'
+                block.transformOriginZ = 100
                 break;
             }
         }
         switch (parseInt(i / 3) % 3) {
             case 0: {//1st line
+                block.transformOriginX = 100
                 break;
             }
             case 1: {
 
                 blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'left: 100px'
+                block.transformOriginX = 0
                 break;
             }
             case 2: {
                 blockWrapper.style = (blockWrapper.getAttribute('style') || '') + 'left: 200px'
+                block.transformOriginX = -100
                 break;
             }
         }
         blockWrapper.appendChild(block)
         document.querySelector('.main').appendChild(blockWrapper)
     }
-
-    let blocks=document.querySelectorAll('.block')
-    
+    let blocks = document.querySelectorAll('.block')
+    for (let i = 0; i < 27; i++) { // 修改旋转中心到中间
+        blocks[i].style = `transform-origin: ${blocks[i].transformOriginX + 50}px ${blocks[i].transformOriginY + 50}px ${blocks[i].transformOriginZ}px`
+    }
+    function setAttr(obj, rotateX, rotateY, rotateZ, transition, renew) {
+        if (renew) {
+            obj.rx = rotateX
+            obj.ry = rotateY
+            obj.rz = rotateZ
+            obj.ts = transition
+        }
+        obj.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) rotateZ(${rotateZ}deg)`
+        obj.style.transition = `all ${transition}s ease 0s`
+    }
+    function get90(num) {
+        if (num > 0) num += 45
+        else num -= 45
+        num = parseInt(num / 90) * 90
+        return num
+    }
+    function setOrder(obj,floor,face,line){
+        obj.floor=floor
+        obj.face=face
+        obj.line=line
+    }
+    let mapp=[{}]
     document.onmousedown = e => {
-        if(e.target.className===''){ // 点击的不是任何一块
+        if (e.target.className === '') { // 点击的不是任何一块
             let originX = e.screenX, originY = e.screenY
             let block = document.querySelector('.main')
             let style = block.getAttribute('style') + ''
@@ -92,14 +123,15 @@
                 let down = e.screenY - originY, right = e.screenX - originX
                 block.style = `transform: rotateX(${-down * v + rx}deg) rotateY(${(right * v + ry)}deg)`
             }
-            document.onmouseup=()=>{
-                document.onmousemove=null
+            document.onmouseup = () => {
+                document.onmousemove = null
             }
         } else {
             let block = e.target.parentNode
+            let faceNum = e.target.className.replace(/[^0-9]/ig, "") - 0
             let originX = e.screenX, originY = e.screenY
             let moveDirection = '' // 移动方向，上下左右，左右当前层转动，上下包括当层，和当前面
-            let originR=block.style.webkitTransform.replace(/[^0-9]/ig,"")-0
+            let originR = block.style.webkitTransform.replace(/[^0-9]/ig, "") - 0
             //block.style = block.getAttribute('style') + 'transform-origin: 150px 0 -100px;'
             document.onmousemove = e => {
                 let moveX = e.screenX - originX, moveY = e.screenY - originY
@@ -110,13 +142,6 @@
                         } else {
                             moveDirection = 'right'
                         }
-                        if(moveDirection!=''){ // 有可能出现相等情况，所以moveDirection可能还是空
-                            for(let i=0;i<27;i++){
-                                if(blocks[i].floor===block.floor){
-                                    blocks[i].setAttribute('style',(blocks[i].getAttribute('style')||'') + `transform-origin: ${100-blocks[i].line*100+50}px 0 ${blocks[i].face*100-100}px; transition: 0s;`)
-                                }
-                            }
-                        }
                     } else { // 上下方向移动
                         if (moveY > 0) {
                             moveDirection = 'down'
@@ -124,29 +149,55 @@
                             moveDirection = 'up'
                         }
                     }
-                }
-                if (moveDirection === 'left'||moveDirection === 'right') {
-                    for(let i=0;i<27;i++){
-                        if(blocks[i].floor===block.floor){
-                            blocks[i].style = blocks[i].getAttribute('style') + `transform: rotateY(${moveX+originR}deg);`
+                    if (moveDirection != '') { // 修改transition
+                        for (let i = 0; i < 27; i++) {
+                            setAttr(blocks[i], blocks[i].rx || 0, blocks[i].ry || 0, blocks[i].rz || 0, 0, 1)
                         }
-
                     }
-                    
+                }
+                if (moveDirection === 'left' || moveDirection === 'right') {
+                    for (let i = 0; i < 27; i++) {
+                        if (blocks[i].floor === block.floor) {
+                            setAttr(blocks[i], blocks[i].rx, moveX + blocks[i].ry, blocks[i].rz, 0, 0)
+                        }
+                    }
+                } else if (moveDirection === 'down' || moveDirection === 'up') {
+                    for (let i = 0; i < 27; i++) {
+                        if (faceNum == 1 || faceNum == 3 || faceNum == 5) {
+                            if (blocks[i].line === block.line) {
+                                setAttr(blocks[i], moveY + blocks[i].rx, blocks[i].ry, blocks[i].rz, 0, 0)
+                            }
+                        } else if (faceNum == 2 || faceNum == 4 || faceNum == 6) {
+                            if (blocks[i].face === block.face) {
+                                setAttr(blocks[i], blocks[i].rx, blocks[i].ry, moveY + blocks[i].rz, 0, 0)
+                            }
+                        }
+                    }
                 }
                 document.onmouseup = () => {
                     document.onmousemove = null
-                    let mx=moveX+originR
-                    if (moveDirection === 'left'||moveDirection === 'right') {
-                        if(mx>0) {
-                            mx+=45
-                        } else {
-                            mx-=45
+                    if (moveDirection === 'left' || moveDirection === 'right') {
+                        for (let i = 0; i < 27; i++) {
+                            if (blocks[i].floor === block.floor) {
+                                setAttr(blocks[i], blocks[i].rx, get90(blocks[i].ry + moveX), blocks[i].rz, .2, 1)
+                                // 0face -> 2line 
+                                // 1face -> 1line 
+                                // 2face -> 0line 
+                                // 0line -> 0face 
+                                // 1line -> 1face 
+                                // 2line -> 2face 
+                            }
                         }
-                        mx=parseInt( mx/90)*90
-                        for(let i=0;i<27;i++){
-                            if(blocks[i].floor===block.floor){
-                                blocks[i].setAttribute('style',blocks[i].getAttribute('style') + `transform: rotateY(${mx}deg); transition: .5s;`)
+                    } else if (moveDirection === 'down' || moveDirection === 'up') {
+                        for (let i = 0; i < 27; i++) {
+                            if (faceNum == 1 || faceNum == 3 || faceNum == 5) {
+                                if (blocks[i].line === block.line) {
+                                    setAttr(blocks[i], get90(blocks[i].rx + moveY), blocks[i].ry, blocks[i].rz, .2, 1)
+                                }
+                            } else if (faceNum == 2 || faceNum == 4 || faceNum == 6) {
+                                if (blocks[i].face === block.face) {
+                                    setAttr(blocks[i], blocks[i].rx, blocks[i].ry, get90(blocks[i].rz + moveY), .2, 1)
+                                }
                             }
                         }
                     }
